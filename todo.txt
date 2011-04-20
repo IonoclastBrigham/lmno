@@ -1,0 +1,39 @@
+TODO:
+-----
+add a Compiler class which is optional
+syntax to override default classes
+	token
+	non-term
+	processing
+	compiler
+lmno commandline options and features
+	-o flag to override output file name
+	option to pipe directly to gcc/g++?
+	change D=string to -Dstring
+
+
+Done:
+-----
+cleaned up code
+broke into several documents
+makefile with all, clean, debug targets
+much-improved C++ template
+fill in appropriate class/method bodies from grammar definition
+Default to C++ output
+cmdline option for C output
+added C output help entry
+changed production operator to '->' instead of '::='
+added copyright banner to templates
+added %copyright{} directive
+header template
+moved parser and stack declarations into header
+move user includes into header
+removed makeheaders from C++ template output
+lmno commandline options and features
+	change -x to -v
+	add -h
+	friendlier help banner
+update C template to work in line with newer paradigm
+C version of expanded header file
+remove stack overflow insertion point for C++ output
+Change "Parse" replacement prefix in templates to "%name" to avoid collisions
