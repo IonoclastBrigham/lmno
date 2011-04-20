@@ -1,0 +1,35 @@
+
+int main()
+{
+	yyParser parser;
+
+	/* First input: 
+			15 / 5
+																*/
+	parser.Parse(INTEGER, 15);
+	parser.Parse(DIVIDE, 0);
+	parser.Parse(INTEGER, 5);
+	parser.Parse(0, 0);
+
+	/*	Second input:
+				50 + 125
+															 */
+
+	parser.Parse(INTEGER, 50);
+	parser.Parse(PLUS, 0);
+	parser.Parse(INTEGER, 125);
+	parser.Parse(0, 0);
+
+	/*	Third input:
+				50 * 125 + 125
+															 */
+
+
+	parser.Parse(INTEGER, 50);
+	parser.Parse(TIMES, 0);
+	parser.Parse(INTEGER, 125);
+	parser.Parse(PLUS, 0);
+	parser.Parse(INTEGER, 125);
+	parser.Parse(0, 0);
+
+}
