@@ -1,0 +1,447 @@
+#labels Featured,User-Manual
+*Taken from http://www.sqlite.org/src/doc/trunk/doc/lmno.html. This information refers to LMNO, but most content applies equally to LMNO. This local copy will be updated for accuracy and completeness.*
+
+=The LMNO Parser Generator=
+
+LMNO is an LALR(1) parser generator for C or C++. It does the same job as [http://www.gnu.org/software/bison/ `Bison`] and [http://invisible-island.net/byacc/byacc.html `Yacc`]. But lmno is not another `Bison` or `Yacc` clone. It uses a different grammar syntax which is designed to reduce the number of coding errors. LMNO also uses a more sophisticated parsing engine that is faster than `Yacc` and `Bison` and which is both reentrant and thread-safe. Furthermore, LMNO implements features that can be used to eliminate resource leaks, making is suitable for use in long-running programs such as graphical user interfaces or embedded controllers.
+
+This document is an introduction to the LMNO parser generator.
+
+==Theory of Operation==
+
+The main goal of LMNO is to translate a context free grammar (CFG) for a particular language into C code that implements a parser for that language. The program has two inputs:
+ * The grammar specification.
+ * A parser template file.
+Typically, only the grammar specification is supplied by the programmar. LMNO comes with a default parser template which works fine for most applications. But the user is free to substitute a different parser template if desired.
+
+Depending on command-line options, LMNO will generate between one and three files of outputs.
+ * C or C++ code to implement the parser.
+ * A header file defining an integer ID for each terminal symbol and parser classes/routines.
+ * An information file that describes the states of the generated parser automaton.
+By default, all three of these output files are generated. The report file is omitted when `-q` is selected.
+The grammar specification file uses a `.lmn`' suffix, by convention. In the examples used in this document, we'll assume the name of the grammar file is `gram.lmn`. A typical use of LMNO would be the following command:
+
+ `lmno gram.lmn`
+
+This command will generate three output files named `gram.cpp`, `gram.h` and `gram.out`. The first is C++ code to implement the parser. The second is the header file that defines numerical values for all terminal symbols,classes and/or routines. And the last is the report that explains the states used by the parser automaton.
+
+==Command Line Options==
+
+The behavior of LMNO can be modified using command-line options. You can obtain a list of the available command-line options together with a brief explanation of what each does by typing
+
+ `lmno -h`
+
+As of this writing, the following command-line options are supported:
+{{{
+  -b           Print only the basis in report.
+  -C           Generate parser in C language.
+  -c           Don't compress the action table.
+  D=<string>   Define an %ifdef macro.
+  -g           Print grammar without actions.
+  -q           (Quiet) Don't print the report file.
+  -s           Print parser stats to standard output.
+  -v           Print the version number and exit.
+  -h           Print this help message and exit.
+}}}
+The `-C` option instructs LMNO to output a parser in C, rather than the default C++. The `-b` option reduces the amount of text in the report file by printing only the basis of each parser state, rather than the full configuration. The `-c` option suppresses action table compression. Using -c will make the parser a little larger and slower but it will detect syntax errors sooner. The `-g` option causes no output files to be generated at all. Instead, the input grammar file is printed on standard output but with all comments, actions and other extraneous text deleted. This is a useful way to get a quick summary of a grammar. The `-q` option suppresses the report file. Using `-s` causes a brief summary of parser statistics to be printed. Like this:
+{{{
+Parser statistics: 74 terminals, 70 nonterminals, 179 rules
+				   340 states, 2026 parser table entries, 0 conflicts
+}}}
+Finally, the `-v` option causes LMNO to print its version number and then stops without attempting to read the grammar or generate a parser.
+
+==The Parser Interface==
+
+LMNO doesn't generate a complete, working program. It only generates a few subroutines that implement a parser. This section describes the interface to those subroutines. It is up to the programmar to call these subroutines in an appropriate way in order to produce a complete system.
+
+Before a program begins using a LMNO-generated parser, the program must first create the parser. A new parser is created as follows:
+{{{
+Parser pParser = new Parser();	// C++
+Parser *pParser = ParseAlloc();	// C
+}}}
+The `ParseAlloc()` routine allocates and initializes a new parser and returns a pointer to it. Of course, in either case you can instantiate the class or structure locally; in C you must be sure to clear all the fields or use `memset()` or similar. After a program is finished using a parser, it can reclaim all memory allocated by that parser by calling:
+{{{
+delete pParser;		// C++
+ParseFree(&pParser);	// C
+}}}
+In C, the argument is the the address of same pointer returned by `ParseAlloc()`. You pass it by reference which allows it to reset your pointer to `NULL`.
+
+After a parser has been allocated on the stack, or using `new` or `ParseAlloc()`, the programmar must supply the parser with a sequence of tokens (terminal symbols) to be parsed. This is accomplished by calling the following function once for each token:
+{{{
+pParser->Parse(tokenID, tokenData, pArg);	// C++
+Parse(pParser, tokenID, tokenData, pArg);	// C
+}}}
+In C, the first argument is the parser state structure. First in C++ and second in C is a small positive integer that tells the parser the type of the next token in the data stream. There is one token type for each terminal symbol in the grammar. The `gram.h` file generated by LMNO contains `#define` statements that map symbolic terminal symbol names into appropriate integer values. (A value of `0` for this argument is a special flag to the parser to indicate that the end of input has been reached.) Next is the value of the given token. By default, the type of the third argument is integer, but the grammar will usually redefine this type to be some kind of structure. Typically the `tokenID` argument will be a broad category of tokens such as `identifier` or `number` and the `tokenData` argument will provide the name of the identifier or the value of the number, and perhaps line number.
+
+The `Parse()` function may have an additional user-defined argument, depending on the grammar. If the grammar specification file defines it, the Parse() function will have a parameter that can be of any type chosen by the programmar. The parser doesn't do anything with this argument except to pass it through to action routines. This is a convenient mechanism for passing state information such as parse trees and symbol tables down to the action routines without having to use global variables.
+
+A typical use of a LMNO parser might look something like the following:
+{{{
+   01 ParseTree *ParseFile(const char *zFilename)
+   02 {
+   03     Tokenizer tokenizer;
+   04     Token tokenData;
+   05     int tokenID;
+   06     Parser parser;
+   07     ParseState state;
+   08
+   09     while( tokenizer.NextToken(&tokenID, &tokenData) )
+   10         parser.Parse(tokenID, &tokenData, &state);
+   11     parser.Parse(0, NULL, NULL);  // Signal end of input stream
+   12
+   13     return state.treeRoot;
+   14 }
+}}}
+This example shows a user-written routine that parses a file of text and returns a pointer to the parse tree. (We've omitted all error-handling from this example to keep it simple.) We assume the existence of some kind of tokenizer which is defined elsewhere, probably using a scanner generator like [http://flex.sourceforge.net/ Flex] or [http://www.complang.org/ragel/ Ragel]. The `NextToken()` function on line 09 retrieves the next token from the input file and puts its type in the integer variable `tokenID`. The `tokenData` variable is assumed to be some kind of structure that contains details about each token, such as its complete text, what line it occurs on, etc.
+
+This example also assumes the existence of structure of type `ParseState` that holds state information about a particular parse. An instance of such a structure is created on line 07. A pointer to this structure is passed into the `Parse()` routine as the optional extra argument. The action routine specified by the grammar for the parser can use the `ParseState` structure to hold whatever information is useful and appropriate. In the example, we note that the `treeRoot` field of the `ParseState` structure is left pointing to the root of the parse tree.
+
+Basically, what a program has to do to use a LMNO-generated parser is first create the parser, then send it lots of tokens obtained by tokenizing an input source. When the end of input is reached, the `Parse()` routine should be called one last time with a token type of `0`. This step is necessary to inform the parser that the end of input has been reached.
+
+There is one other interface routine that should be mentioned before we move on. The `ParseTrace()` function can be used to generate debugging output from the parser. A prototype for this routine is as follows:
+{{{
+Parser::Trace(ostream *traceStream, const string& tracePrompt);	// C++
+ParseTrace(FILE* stream, char* tracePrompt);			// C
+}}}
+After this routine is called, a short (one-line) message is written to the designated output stream every time the parser changes states or calls an action routine. Each such message is prefaced using the text given by tracePrompt. This debugging output can be turned off by calling `Trace()` again with a first argument of `NULL` or by calling the overload with no arguments, in C++.
+
+==Differences With YACC and BISON==
+
+Programmars who have previously used the [http://invisible-island.net/byacc/byacc.html `Yacc`] or [http://www.gnu.org/software/bison/ `Bison`] parser generator will notice several important differences between `Yacc` and/or `Bison` and LMNO:
+ * In `Yacc` and `Bison`, the parser calls the tokenizer. In LMNO, the tokenizer may call the parser, or both may be called externally.
+ * LMNO uses no global variables. `Yacc` and `Bison` use global variables to pass information between the tokenizer and parser.
+ * LMNO allows multiple parsers to be running simultaneously. `Yacc` and `Bison` do not.
+These differences may cause some initial confusion for programmars with prior `Yacc` and `Bison` experience. The LMNO way of doing things is better. Period.
+
+===Input File Syntax===
+
+The main purpose of the grammar specification file for LMNO is to define the grammar for the parser. But the input file also specifies additional information LMNO requires to do its job. Most of the work in using LMNO is in writing an appropriate grammar file.
+
+The grammar file for LMNO is, for the most part, free format. It does not have sections or divisions like `Yacc` or `Bison`. Any declaration can occur at any point in the file. LMNO ignores whitespace (except where it is needed to separate tokens) and it honors the same commenting conventions as C and C++.
+
+===Terminals and Nonterminals===
+
+A terminal symbol (token) is any string of alphanumeric and underscore characters that begins with an upper case letter. A terminal can contain lower class letters after the first character, but the usual convention is to make terminals all upper case. A nonterminal, on the other hand, is any string of alphanumeric and underscore characters than begins with a lower case letter. Again, the usual convention is to make nonterminals use all lower case letters.
+
+In LMNO, terminal and nonterminal symbols do not need to be declared or identified in a separate section of the grammar file. LMNO is able to generate a list of all terminals and nonterminals by examining the grammar rules, and it can always distinguish a terminal from a nonterminal by checking the case of the first character of the name. Unresolvable nonterminals are detected and reported on the commandline.
+
+`Yacc` and `Bison` allow terminal symbols to have either alphanumeric names or to be individual characters included in single quotes, like this: ')' or '$'. LMNO does not allow this alternative form for terminal symbols. With LMNO, all symbols, terminals and nonterminals, must have alphanumeric names.
+
+===Grammar Rules===
+
+The main component of a LMNO grammar file is a sequence of grammar rules. Each grammar rule consists of a nonterminal symbol followed by the special symbol `->` and then a list of terminals and/or nonterminals. The rule is terminated by a period. The list of terminals and nonterminals on the right-hand side of the rule can be empty. Rules can occur in any order, except that the left-hand side of the first rule is assumed to be the start symbol for the grammar (unless specified otherwise using the `%start` directive described below.) A typical sequence of grammar rules might look something like this:
+{{{
+  expr -> expr PLUS expr.
+  expr -> expr TIMES expr.
+  expr -> LPAREN expr RPAREN.
+  expr -> VALUE.
+}}}
+There is one non-terminal in this example, `expr`, and five terminal symbols or tokens: `PLUS`, `TIMES`, `LPAREN`, `RPAREN` and `VALUE`.
+
+Like `Yacc` and `Bison`, LMNO allows the grammar to specify a block of code that will be executed whenever a grammar rule is reduced by the parser. In LMNO, this action is specified by putting the C++ or C code (contained within curly braces `{...}`) immediately after the period that closes the rule. For example:
+
+ `expr -> expr PLUS expr.   { printf("Doing an addition...\n"); }`
+
+In order to be useful, grammar actions must normally be linked to their associated grammar rules. In '`Yacc`' and `Bison`, this is accomplished by embedding a `$$` in the action to stand for the value of the left-hand side of the rule and symbols `$1`, `$2`, and so forth to stand for the value of the terminal or nonterminal at position 1, 2 and so forth on the right-hand side of the rule. This idea is very powerful, but it is also very error-prone. The single most common source of errors in a `Yacc` or `Bison` grammar is to miscount the number of symbols on the right-hand side of a grammar rule and say `$7` when you really mean `$8`.
+
+LMNO avoids the need to count grammar symbols by assigning symbolic names to each symbol in a grammar rule and then using those symbolic names in the action. In `Yacc` or `Bison`, one would write this:
+
+ `expr -> expr PLUS expr  { $$ = $1 + $3; };`
+
+But in LMNO, the same rule becomes the following:
+
+ `expr(A) -> expr(B) PLUS expr(C).  { A = B+C; }`
+
+In the LMNO rule, any symbol in parentheses after a grammar rule symbol becomes a place holder for that symbol in the grammar rule. This place holder can then be used in the associated C action to stand for the value of that symbol.
+The LMNO notation for linking a grammar rule with its reduce action is superior to `Yacc`/`Bison` on several counts. First, as mentioned above, the LMNO method avoids the need to count grammar symbols. Secondly, if a terminal or nonterminal in a LMNO grammar rule includes a linking symbol in parentheses but that linking symbol is not actually used in the reduce action, then an error message is generated. For example, the rule:
+
+ `expr(A) -> expr(B) PLUS expr(C).  { A = B; }`
+
+will generate an error because the linking symbol `C` is used in the grammar rule but not in the reduce action.
+
+The LMNO notation for linking grammar rules to reduce actions also facilitates the use of destructors for reclaiming memory allocated by the values of terminals and nonterminals on the right-hand side of a rule.
+
+===Precedence Rules===
+
+LMNO resolves parsing ambiguities in exactly the same way as `Yacc` and `Bison`. A shift-reduce conflict is resolved in favor of the shift, and a reduce-reduce conflict is resolved by reducing whichever rule comes first in the grammar file.
+
+Just like in `Yacc` and `Bison`, LMNO allows a measure of control over the resolution of paring conflicts using precedence rules. A precedence value can be assigned to any terminal symbol using the` %left`, `%right` or `%nonassoc` directives. Terminal symbols mentioned in earlier directives have a lower precedence that terminal symbols mentioned in later directives. For example:
+{{{
+%left AND.
+%left OR.
+%nonassoc EQ NE GT GE LT LE.
+%left PLUS MINUS.
+%left TIMES DIVIDE MOD.
+%right EXP NOT.
+}}}
+In the preceding sequence of directives, the AND operator is defined to have the lowest precedence. The OR operator is one precedence level higher. And so forth. Hence, the grammar would attempt to group the ambiguous expression:
+
+ `a AND b OR c`
+
+like this:
+
+ `a AND (b OR c)`
+
+The associativity (left, right or nonassoc) is used to determine the grouping when the precedence is the same. `AND` is left-associative in our example, so:
+
+ `a AND b AND c`
+
+is parsed like this:
+
+ `(a AND b) AND c`
+
+The `EXP` operator is right-associative, though, so:
+
+ `a EXP b EXP c`
+
+is parsed like this:
+
+ `a EXP (b EXP c)`
+
+The nonassoc precedence is used for non-associative operators. So:
+
+ `a EQ b EQ c`
+
+is an error.
+
+The precedence of non-terminals is transferred to rules as follows: The precedence of a grammar rule is equal to the precedence of the left-most terminal symbol in the rule for which a precedence is defined. This is normally what you want, but in those cases where you want to precedence of a grammar rule to be something different, you can specify an alternative precedence symbol by putting the symbol in square braces after the period at the end of the rule and before any executable code. For example:
+
+ `expr = MINUS expr.  [NOT]`
+
+This rule has a precedence equal to that of the `NOT` symbol, not the `MINUS` symbol as would have been the case by default.
+
+With the knowledge of how precedence is assigned to terminal symbols and individual grammar rules, we can now explain precisely how parsing conflicts are resolved in LMNO. Shift-reduce conflicts are resolved as follows:
+ * If either the token to be shifted or the rule to be reduced lacks precedence information, then resolve in favor of the shift, but report a parsing conflict.
+ * If the precedence of the token to be shifted is greater than the precedence of the rule to reduce, then resolve in favor of the shift. No parsing conflict is reported.
+ * If the precedence of the token it be shifted is less than the precedence of the rule to reduce, then resolve in favor of the reduce action. No parsing conflict is reported.
+ * If the precedences are the same and the shift token is right-associative, then resolve in favor of the shift. No parsing conflict is reported.
+ * If the precedences are the same the the shift token is left-associative, then resolve in favor of the reduce. No parsing conflict is reported.
+ * Otherwise, resolve the conflict by doing the shift and report the parsing conflict.
+Reduce-reduce conflicts are resolved this way:
+ * If either reduce rule lacks precedence information, then resolve in favor of the rule that appears first in the grammar and report a parsing conflict.
+ * If both rules have precedence and the precedence is different then resolve the dispute in favor of the rule with the highest precedence and do not report a conflict.
+ * Otherwise, resolve the conflict by reducing by the rule that appears first in the grammar and report a parsing conflict.
+
+==Special Directives==
+
+The input grammar to LMNO consists of grammar rules and special directives. We've described all the grammar rules, so now we'll talk about the special directives.
+
+Directives in LMNO can occur in any order. You can put them before the grammar rules, after the grammar rules, or in the midst of the grammar rules. It doesn't matter. The relative order of directives used to assign precedence to terminals is important, but other than that, the order of directives in LMNO is arbitrary.
+
+LMNO supports the following special directives:
+{{{
+%code
+%copyright
+%default_destructor
+%default_type
+%destructor
+%extra_argument
+%include
+%left
+%name
+%nonassoc
+%parse_accept
+%parse_failure
+%right
+%stack_overflow
+%stack_size
+%start_symbol
+%syntax_error
+%token_destructor
+%token_prefix
+%token_type
+%type
+}}}
+Each of these directives will be described separately in the following sections.
+
+===The %code directive===
+
+The `%code` directive is used to specify additional C++ or C code that is added to the end of the main output file. This is similar to the `%include` directive except that `%include` is inserted at the beginning of the main output file.
+
+`%code` is typically used to include some action routines or perhaps a tokenizer as part of the output file.
+
+===The %copyright directive===
+
+The `%copyright` directive is used to insert copyright and/or license information automatically into the file header of the generated source files. This makes redistribution of generated files separate from the original grammar practical, without needing to fear that manual edits will be clobbered when the parser is rebuilt.
+
+The text is included literally, line-for-line, prefixed with a line comment marker at the top of the output files. You may put anything in here, and LMNO will happily suck everything right down, up to the first `}` character it finds.
+
+===The %default_destructor directive===
+
+The `%default_destructor` directive specifies a destructor to use for non-terminals that do not have their own destructor specified by a separate `%destructor` directive. See `%destructor` below for additional information.
+
+In some grammars, many different non-terminal symbols have the same datatype and hence the same destructor. This directive is a convenience way to specify the same destructor for all those non-terminals using a single statement.
+
+===The %default_type directive===
+
+The` %default_type` directive specifies the datatype of non-terminal symbols that do no have their own datatype defined using a separate `%type` directive. See `%type` below for addition information.
+
+===The %destructor directive===
+
+The `%destructor` directive is used to specify a destructor for a non-terminal symbol. (See also `%token_destructor` which is used to specify a destructor for terminal symbols.)
+
+A non-terminal's destructor is called to dispose of the non-terminal's value whenever the non-terminal is popped from the stack. This includes all of the following circumstances:
+ * When a rule reduces and the value of a non-terminal on the right-hand side is not linked to C++ code.
+ * When the stack is popped during error processing.
+ * When the ParseFree() function runs.
+The destructor can do whatever it wants with the value of the non-terminal, but its design is to deallocate memory or other resources held by that non-terminal. Consider an example:
+{{{
+%type nt {ParseNode*}
+%destructor nt { delete $$; }
+nt(A) -> ID NUM.   { A = new ParseNode(); }
+}}}
+This example is a bit contrived but it serves to illustrate how destructors work. The example shows a non-terminal named `nt` that holds values of type `ParseNode*`. When the rule for an `nt` reduces, it sets the value of the non-terminal to space obtained from `new`. Later, when the `nt` non-terminal is popped from the stack, the destructor will fire and call `delete` on this object, thus avoiding a memory leak. (The symbol `$$` in the destructor code is replaced by the value of the non-terminal.)
+
+It is important to note that the value of a non-terminal is passed to the destructor whenever the non-terminal is removed from the stack, unless the non-terminal is used in an executable action. If the non-terminal is used by C++ or C code, then it is assumed that the code will take care of destroying it if it should really be destroyed. More commonly, the value is used to build some larger structure and we don't want to destroy it, which is why the destructor is not called in this circumstance.
+
+By appropriate use of destructors, it is possible to build a parser using LMNO that can be used within a long-running program, such as a GUI, that will not leak memory or other resources. To do the same using `Yacc` or `Bison` is much more difficult.
+
+===The %extra_argument directive===
+
+The `%extra_argument` directive instructs LMNO to add an extra parameter to the parameter list of the Parse() function it generates. LMNO doesn't do anything itself with this extra argument, but it does make the argument available to executable action routines, destructors, and so forth. For example, if the grammar file contains:
+
+ `%extra_argument { MyStruct* pAbc }`
+
+Then the `Parse()` function generated will have an additional parameter of type `MyStruct*` and all action routines will have access to a variable named `pAbc` that is the value of the last parameter in the most recent call to `Parse()`.
+
+===The %include directive===
+
+The `%include` directive specifies executable code that is included near the top of the generated parser. You can include any text you want -- the LMNO parser generator copies it blindly. If you have multiple `%include` directives in your grammar file the value of the last `%include` directive overwrites all the others.The `%include` directive is very handy for getting some extra `#include` or `#define` preprocessor statements at the beginning of the generated parser. For example:
+
+ `%include {#include <unistd.h>}`
+
+This might be needed, for example, if some of the reduction actions in the grammar call functions that are prototyed in `unistd.h`.
+
+===The %left directive===
+
+The `%left` directive is used (along with the `%right` and `%nonassoc` directives) to declare precedences of terminal symbols. Every terminal symbol whose name appears after a `%left` directive but before the next period (`.`) is given the same left-associative precedence value. Subsequent `%left` directives have higher precedence. For example:
+{{{
+%left AND.
+%left OR.
+%nonassoc EQ NE GT GE LT LE.
+%left PLUS MINUS.
+%left TIMES DIVIDE MOD.
+%right EXP NOT.
+}}}
+Note the period that terminates each `%left`, `%right` or `%nonassoc` directive.
+
+LALR(1) grammars can get into a situation where they require a large amount of stack space if you make heavy use or right-associative operators. For this reason, it is recommended that you use `%left` rather than `%right` whenever possible.
+
+===The %name directive===
+
+You can prepend a  string to generated types and functions using the `%name` directive. For instance:
+
+ `%name Abcde`
+
+Putting this directive in the grammar file will cause LMNO to generate a class named:
+ * `AbcdeParser`
+with methods:
+ * `Abcde() // constructor`
+ * `Parse()`
+ * `Trace()`
+or a struct:
+ * `AbcdeParser`
+and functions named:
+ * `AbcdeAlloc()`
+ * `AbcdeFree()`
+ * `AbcdeParse() // parse routine`
+ * `AbcdeTrace()`
+The `%name` directive allows you to generate two or more different parsers and link them all into the same executable.
+
+===The %nonassoc directive===
+
+This directive is used to assign non-associative precedence to one or more terminal symbols. See the section on precedence rules or on the `%left` directive for additional information.
+
+===The %parse_accept directive===
+
+The `%parse_accept` directive specifies a block of code that is executed whenever the parser accepts its input string as complete and correct. To "accept" an input string means that the parser was able to process all tokens without error.
+
+For example:
+
+ `%parse_accept { cout << "parsing complete!" << endl; }`
+
+===The %parse_failure directive===
+
+The `%parse_failure` directive specifies a block of code that is executed whenever the parser fails complete because of syntax errors in the token stream, or an unrecoverable internal error. This code is not executed until the parser has tried and failed to resolve an input error using its usual error recovery strategy. The routine is only invoked when parsing is unable to continue.
+
+ `%parse_failure { cerr << "Giving up.  Parser is hopelessly lost..." << endl; }`
+
+===The %right directive===
+
+This directive is used to assign right-associative precedence to one or more terminal symbols. See the section on precedence rules or on the `%left` directive for additional information.
+
+===The %stack_overflow directive==
+
+The `%stack_overflow` directive specifies a block of C code that is executed if the parser's internal stack ever overflows; note that *this cannot happen in a C++ parser because the stack will be dynamically resized automatically.* Typically this just prints an error message. After a stack overflow, the parser will be unable to continue and must be reset.
+
+ `%stack_overflow { cerr << "Giving up.  Parser stack overflow" << endl; }`
+
+You can help prevent parser stack overflows and generally minimize stack size by avoiding the use of right recursion and right-precedence operators in your grammar. Use left recursion and and left-precedence operators instead, to encourage rules to reduce sooner and keep the stack size down. For example, do rules like this:
+{{{
+   list -> .
+   list -> list element.      // left-recursion.  Good!
+}}}
+Not like this:
+{{{
+   list -> .
+   list -> element list.      // right-recursion.  Bad!
+}}}
+
+===The %stack_size directive===
+
+If stack overflow is a problem and you can't resolve the trouble by using left-recursion, then you might want to increase the size of the parser's stack using this directive; note that *this does nothing in a C++ parser because the stack will be dynamically resized automatically.* Put an positive integer after the `%stack_size` directive and LMNO will generate a parse with a stack of the requested size. The default value is 100. Example:
+
+ `%stack_size 2000`
+
+===The %start_symbol directive===
+
+By default, the start-symbol for a grammar that LMNO generates is the first non-terminal that appears in the grammar file. But you can choose a different start-symbol using the` %start_symbol` directive.
+
+ `%start_symbol  progrum`
+
+===The %token_destructor directive===
+
+Like the `%destructor` directive assigns a destructor to a non-terminal symbol (see `%destructor` above), this directive does the same thing for all terminal symbols.
+
+Unlike non-terminal symbols which may each have a different data type for their values, terminals all use the same data type (defined by the `%token_type` directive) and so they use a common destructor. Other than that, the token destructor works just like the non-terminal destructors.
+
+===The %token_prefix directive===
+
+LMNO generates `#defines` that assign small integer constants to each terminal symbol in the grammar. If desired, LMNO will add a prefix specified by this directive to each of the `#defines` it generates. So if the default output of LMNO looked like this:
+{{{
+#define AND              1
+#define MINUS            2
+#define OR               3
+#define PLUS             4
+}}}
+You can insert a statement into the grammar like this:
+ `%token_prefix    TOKEN_`
+to cause LMNO to produce these symbols instead:
+{{{
+#define TOKEN_AND        1
+#define TOKEN_MINUS      2
+#define TOKEN_OR         3
+#define TOKEN_PLUS       4
+}}}
+
+===The %token_type and %type directives===
+
+These directives are used to specify the data types for values on the parser's stack associated with terminal and non-terminal symbols. The values of all terminal symbols must be of the same type. This turns out to be the same data type as the last standard parameter to the `Parse()` function generated by LMNO. Typically, you will make the value of a terminal symbol by a pointer to some kind of token structure. Like this:
+
+ `%token_type    {Token*}`
+
+If the data type of terminals is not specified, the default value is `int`.
+
+Non-terminal symbols can each have their own data types. Typically the data type of a non-terminal is a pointer to the root of a parse-tree structure that contains all information about that non-terminal. For example:
+
+ `%type   expr  {Expr*}`
+
+Each entry on the parser's stack is actually a union containing instances of all data types for every non-terminal and terminal symbol. LMNO will automatically use the correct element of this union depending on what the corresponding non-terminal or terminal symbol is. But the grammar designer should keep in mind that the size of the union will be the size of its largest element. So if you have a single non-terminal whose data type requires 1K of storage, then your 100 entry parser stack will require 100K of heap space. If you are willing and able to pay that price, fine. You just need to know. Usually, it would be better to use a pointer to a large structure.
+
+==Error Processing==
+
+After extensive experimentation over several years, it has been discovered that the error recovery strategy used by `Yacc` is about as good as it gets. And so that is what LMNO uses.
+
+When a LMNO-generated parser encounters a syntax error, it first invokes the code specified by the `%syntax_error` directive, if any. It then enters its error recovery strategy. The error recovery strategy is to begin popping the parsers stack until it enters a state where it is permitted to shift a special non-terminal symbol named `error`. It then shifts this non-terminal and continues parsing. But the `%syntax_error` routine will not be called again until at least three new tokens have been successfully shifted.
+
+If the parser pops its stack until the stack is empty, and it still is unable to shift the error symbol, then the `%parse_failed` routine is invoked and the parser resets itself to its start state, ready to begin parsing a new file. This is what will happen at the very first syntax error, of course, if there are no instances of the `error` non-terminal in your grammar.
