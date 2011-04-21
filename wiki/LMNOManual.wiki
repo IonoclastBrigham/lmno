@@ -1,6 +1,8 @@
 #labels Featured,User-Manual
 *Taken from http://www.sqlite.org/src/doc/trunk/doc/lmno.html. This information refers to LMNO, but most content applies equally to LMNO. This local copy will be updated for accuracy and completeness.*
-
+----
+<wiki:toc max_depth="3" />
+----
 =The LMNO Parser Generator=
 
 LMNO is an LALR(1) parser generator for C or C++. It does the same job as [http://www.gnu.org/software/bison/ `Bison`] and [http://invisible-island.net/byacc/byacc.html `Yacc`]. But lmno is not another `Bison` or `Yacc` clone. It uses a different grammar syntax which is designed to reduce the number of coding errors. LMNO also uses a more sophisticated parsing engine that is faster than `Yacc` and `Bison` and which is both reentrant and thread-safe. Furthermore, LMNO implements features that can be used to eliminate resource leaks, making is suitable for use in long-running programs such as graphical user interfaces or embedded controllers.
