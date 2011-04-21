@@ -448,21 +448,21 @@ PRIVATE void tplt_xfer(char *name, FILE *in, FILE *out, int *lineno)
 	{
 		(*lineno)++;
 		iStart = 0;
-		if(name)
+
+		for(i = 0; line[i]; i++)
 		{
-			for(i = 0; line[i]; i++)
+			if(line[i]=='%' && strncmp(&line[i],"%name",5)==0 &&
+			   (i == 0 || !isalpha(line[i-1])))
 			{
-				if(line[i]=='%' && strncmp(&line[i],"%name",5)==0 &&
-				   (i == 0 || !isalpha(line[i-1])))
-				{
-					if(i > iStart)
-						fprintf(out,"%.*s", i - iStart, &line[iStart]);
+				if(i > iStart)
+					fprintf(out,"%.*s", i - iStart, &line[iStart]);
+				if(name)
 					fprintf(out, "%s", name);
-					i += 4;
-					iStart = i + 1;
-				}
+				i += 4;
+				iStart = i + 1;
 			}
 		}
+
 		fprintf(out,"%s",&line[iStart]);
 	}
 }
