@@ -1,11 +1,9 @@
 #labels Featured,User-Manual
-*Taken from http://www.sqlite.org/src/doc/trunk/doc/lmno.html. This information refers to LMNO, but most content applies equally to LMNO. This local copy will be updated for accuracy and completeness.*
-----
 <wiki:toc max_depth="3" />
 ----
 =The LMNO Parser Generator=
 
-LMNO is an LALR(1) parser generator for C or C++. It does the same job as [http://www.gnu.org/software/bison/ `Bison`] and [http://invisible-island.net/byacc/byacc.html `Yacc`]. But lmno is not another `Bison` or `Yacc` clone. It uses a different grammar syntax which is designed to reduce the number of coding errors. LMNO also uses a more sophisticated parsing engine that is faster than `Yacc` and `Bison` and which is both reentrant and thread-safe. Furthermore, LMNO implements features that can be used to eliminate resource leaks, making is suitable for use in long-running programs such as graphical user interfaces or embedded controllers.
+LMNO is an LALR(1) parser generator for C or C++. It does the same job as [http://www.gnu.org/software/bison/ Bison] and [http://invisible-island.net/byacc/byacc.html Yacc]. But lmno is not another `Bison` or `Yacc` clone. It uses a different grammar syntax which is designed to reduce the number of coding errors. LMNO also uses a more sophisticated parsing engine that is faster than `Yacc` and `Bison` and which is both reentrant and thread-safe. Furthermore, LMNO implements features that can be used to eliminate resource leaks, making is suitable for use in long-running programs such as graphical user interfaces or embedded controllers.
 
 This document is an introduction to the LMNO parser generator.
 
@@ -447,3 +445,13 @@ After extensive experimentation over several years, it has been discovered that 
 When a LMNO-generated parser encounters a syntax error, it first invokes the code specified by the `%syntax_error` directive, if any. It then enters its error recovery strategy. The error recovery strategy is to begin popping the parsers stack until it enters a state where it is permitted to shift a special non-terminal symbol named `error`. It then shifts this non-terminal and continues parsing. But the `%syntax_error` routine will not be called again until at least three new tokens have been successfully shifted.
 
 If the parser pops its stack until the stack is empty, and it still is unable to shift the error symbol, then the `%parse_failed` routine is invoked and the parser resets itself to its start state, ready to begin parsing a new file. This is what will happen at the very first syntax error, of course, if there are no instances of the `error` non-terminal in your grammar.
+
+==Credits and Copyright==
+
+This document Copyright ©2011 Brigham Toskin. Redistributable under the [http://creativecommons.org/licenses/by-sa/3.0/ Creative Commons By-SA-3.0] license.
+
+_Based on http://www.sqlite.org/src/doc/trunk/doc/lemon.html _
+
+LMNO parser generator Copyright ©2010-2011 Brigham Toskin. Redistributable under the [http://www.opensource.org/licenses/mit-license.php MIT] license.
+
+_Based on Lemon v1. Thanks go out to all the original contributors._
