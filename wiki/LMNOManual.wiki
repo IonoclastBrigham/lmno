@@ -1,4 +1,4 @@
-#labels Featured,User-Manual
+#labels Featured,User-Manual,Documentation
 <wiki:toc max_depth="3" />
 ----
 =The LMNO Parser Generator=
