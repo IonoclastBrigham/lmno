@@ -304,6 +304,14 @@ The `%extra_argument` directive instructs LMNO to add an extra parameter to the 
 
 Then the `Parse()` function generated will have an additional parameter of type `MyStruct*` and all action routines will have access to a variable named `pAbc` that is the value of the last parameter in the most recent call to `Parse()`.
 
+===The %fallback directive===
+
+If a construct like:
+
+`%fallback ID X Y Z.`
+
+appears in the grammer, then ID becomes a fallback token for X, Y, and Z.  Whenever one of the tokens X, Y, or Z is input to the parser but it does not have a valid rule, the type of the token is changed to ID and the parse is retried before an error is thrown.
+
 ===The %include directive===
 
 The `%include` directive specifies executable code that is included near the top of the generated parser. You can include any text you want -- the LMNO parser generator copies it blindly. If you have multiple `%include` directives in your grammar file the value of the last `%include` directive overwrites all the others.The `%include` directive is very handy for getting some extra `#include` or `#define` preprocessor statements at the beginning of the generated parser. For example:
