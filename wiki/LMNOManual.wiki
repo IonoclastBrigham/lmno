@@ -308,7 +308,7 @@ Then the `Parse()` function generated will have an additional parameter of type 
 
 If a construct like:
 
-`%fallback ID X Y Z.`
+ `%fallback ID X Y Z.`
 
 appears in the grammer, then ID becomes a fallback token for X, Y, and Z.  Whenever one of the tokens X, Y, or Z is input to the parser but it does not have a valid rule, the type of the token is changed to ID and the parse is retried before an error is thrown.
 
