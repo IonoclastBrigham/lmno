@@ -1,15 +1,19 @@
+LMNO (Lean, Mean NO Parser-generator)
+
 TODO:
 -----
-add a Compiler class which is optional
-syntax to override default classes
-	token
-	non-term
-	processing
-	compiler
+move TODO => bug tracker, Done => CHANGELOG
+bug: make sure #include matches generated header name
 lmno commandline options and features
 	-o flag to override output file name
 	option to pipe directly to gcc/g++?
+		create named pipe
+		execvp gcc -c PIPENAME
 	change D=string to -Dstring
+normalize %top vs %include between projects
+normalize command line options (name and functionality) where features intersect
+
+incorporate IJKL into site and examples
 
 
 Done:
@@ -37,3 +41,4 @@ update C template to work in line with newer paradigm
 C version of expanded header file
 remove stack overflow insertion point for C++ output
 Change "Parse" replacement prefix in templates to "%name" to avoid collisions
+Errors in grammar rules now prints the correct line number from grammar file.
