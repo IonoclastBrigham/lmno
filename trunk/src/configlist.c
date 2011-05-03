@@ -24,17 +24,17 @@ static struct config **basisend = 0;	 /* End of list of basis configs */
 PRIVATE struct config *newconfig()
 {
 	struct config *new;
-	if( freelist==0 )
+	if(freelist == 0)
 	{
 		int i;
 		int amt = 3;
-		freelist = (struct config *)malloc( sizeof(struct config)*amt );
-		if( freelist==0 )
+		freelist = (struct config *)malloc( sizeof(struct config)*amt);
+		if(freelist == 0)
 		{
 			fprintf(stderr,"Unable to allocate memory for a new configuration.");
 			exit(1);
 		}
-		for(i=0; i<amt-1; i++)
+		for(i = 0; i < amt-1; i++)
 			freelist[i].next = &freelist[i+1];
 		freelist[amt-1].next = 0;
 	}
@@ -78,11 +78,11 @@ struct config *Configlist_add(struct rule *rp, int dot)
 {
 	struct config *cfp, model;
 	
-	assert( currentend!=0 );
+	assert(currentend != 0);
 	model.rp = rp;
 	model.dot = dot;
 	cfp = Configtable_find(&model);
-	if( cfp==0 )
+	if(cfp == 0)
 	{
 		cfp = newconfig();
 		cfp->rp = rp;
@@ -104,12 +104,12 @@ struct config *Configlist_addbasis(struct rule *rp, int dot)
 {
 	struct config *cfp, model;
 	
-	assert( basisend!=0 );
-	assert( currentend!=0 );
+	assert(basisend != 0);
+	assert(currentend != 0);
 	model.rp = rp;
 	model.dot = dot;
 	cfp = Configtable_find(&model);
-	if( cfp==0 )
+	if(cfp == 0)
 	{
 		cfp = newconfig();
 		cfp->rp = rp;
@@ -136,28 +136,29 @@ void Configlist_closure(struct lmno *lmnop)
 	struct symbol *sp, *xsp;
 	int i, dot;
 	
-	assert( currentend!=0 );
-	for(cfp=current; cfp; cfp=cfp->next)
+	assert(currentend != 0);
+	for(cfp = current; cfp; cfp = cfp->next)
 	{
 		rp = cfp->rp;
 		dot = cfp->dot;
-		if( dot>=rp->nrhs ) continue;
+		if(dot >= rp->nrhs)
+			continue;
 		sp = rp->rhs[dot];
-		if( sp->type==NONTERMINAL )
+		if(sp->type == NONTERMINAL)
 		{
-			if( sp->rule==0 && sp!=lmnop->errsym )
+			if(sp->rule == 0 && sp != lmnop->errsym)
 			{
-				ErrorMsg(lmnop->filename,rp->line,"Nonterminal \"%s\" has no rules.",
-						 sp->name);
+				ErrorMsg(lmnop->filename, rp->ruleline,
+					"Nonterminal \"%s\" has no rules.", sp->name);
 				lmnop->errorcnt++;
 			}
-			for(newrp=sp->rule; newrp; newrp=newrp->nextlhs)
+			for(newrp = sp->rule; newrp; newrp = newrp->nextlhs)
 			{
 				newcfp = Configlist_add(newrp,0);
-				for(i=dot+1; i<rp->nrhs; i++)
+				for(i = dot+1; i < rp->nrhs; i++)
 				{
 					xsp = rp->rhs[i];
-					if( xsp->type==TERMINAL )
+					if(xsp->type == TERMINAL)
 					{
 						SetAdd(newcfp->fws,xsp->index);
 						break;
@@ -165,11 +166,11 @@ void Configlist_closure(struct lmno *lmnop)
 					else
 					{
 						SetUnion(newcfp->fws,xsp->firstset);
-						if( xsp->lambda==B_FALSE )
+						if(xsp->lambda == B_FALSE)
 							break;
 					}
 				}
-				if( i==rp->nrhs )
+				if(i == rp->nrhs)
 					Plink_add(&cfp->fplp,newcfp);
 			}
 		}
@@ -223,9 +224,9 @@ void Configlist_eat(struct config *cfp)
 	for(; cfp; cfp=nextcfp)
 	{
 		nextcfp = cfp->next;
-		assert( cfp->fplp==0 );
-		assert( cfp->bplp==0 );
-		if( cfp->fws )
+		assert(cfp->fplp == 0);
+		assert(cfp->bplp == 0);
+		if(cfp->fws)
 			SetFree(cfp->fws);
 		deleteconfig(cfp);
 	}
