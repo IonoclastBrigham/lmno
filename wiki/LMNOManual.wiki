@@ -407,6 +407,10 @@ By default, the start-symbol for a grammar that LMNO generates is the first non-
 
  `%start_symbol  progrum`
 
+===The %syntax_error directive===
+
+This directive is used to specify a routine to call when a syntax error is detected in the token stream being parsed. This might be useful to output error or warning messages, set a failure state, or clean up memory. See Error_Processing below for details.
+
 ===The %token_destructor directive===
 
 Like the `%destructor` directive assigns a destructor to a non-terminal symbol (see `%destructor` above), this directive does the same thing for all terminal symbols.
