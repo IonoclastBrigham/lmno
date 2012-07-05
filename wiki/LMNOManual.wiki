@@ -397,7 +397,7 @@ Not like this:
 
 ===The %stack_size directive===
 
-If stack overflow is a problem and you can't resolve the trouble by using left-recursion, then you might want to increase the size of the parser's stack using this directive; note that *this does nothing in a C++ parser because the stack will be dynamically resized automatically.* Put an positive integer after the `%stack_size` directive and LMNO will generate a parse with a stack of the requested size. The default value is 100. Example:
+If stack overflow is a problem and you can't resolve the trouble by using left-recursion, then you might want to increase the size of the parser's stack using this directive; note that *this does nothing in a C++ parser because the stack will be dynamically resized automatically.* Put a positive integer after the `%stack_size` directive and LMNO will generate a parser with a stack of the requested size. The default value is 100. Example:
 
  `%stack_size 2000`
 
