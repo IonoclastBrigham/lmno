@@ -344,7 +344,7 @@ You can prepend a  string to generated types and functions using the `%name` dir
 Putting this directive in the grammar file will cause LMNO to generate a class named:
  * `AbcdeParser`
 with methods:
- * `Abcde() // constructor`
+ * `AbcdeParser() // constructor`
  * `Parse()`
  * `Trace()`
 or a struct:
