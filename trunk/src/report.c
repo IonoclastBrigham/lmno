@@ -547,19 +547,19 @@ void emit_destructor_code(FILE *out, struct symbol *sp,
 		cp = lmnop->tokendest;
 		if(cp==0)
 			return;
-		fprintf(out,"#line %d \"%s\"\n{",lmnop->tokendestln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n/*Token d'tor*/\n{",lmnop->tokendestln,lmnop->filename);
 	}
 	else if(sp->destructor)
 	{
 		cp = sp->destructor;
-		fprintf(out,"#line %d \"%s\"\n{",sp->destructorln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n/Explicit *d'tor*/\n{",sp->destructorln,lmnop->filename);
 	}
 	else if(lmnop->vardest)
 	{
 		cp = lmnop->vardest;
 		if(cp==0)
 			return;
-		fprintf(out,"#line %d \"%s\"\n{",lmnop->vardestln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n/*Default d'tor*/\n{",lmnop->vardestln,lmnop->filename);
 	}
 	else
 	{
@@ -769,15 +769,15 @@ PRIVATE void emit_code(FILE *out, struct rule *rp,
 	/* Generate code to do the reduce action */
 	if(rp->code)
 	{
-		fprintf(out,"#line %d \"%s\"\n{",rp->line,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n{\n",rp->line,lmnop->filename);
 		fprintf(out,"%s",rp->code);
 		for(cp=rp->code; *cp; cp++)
 		{
 			if(*cp=='\n')
 				linecnt++;
 		} /* End loop */
-		(*lineno) += 3 + linecnt;
-		fprintf(out,"}\n#line %d \"%s\"\n",*lineno,lmnop->outname);
+		(*lineno) += 5 + linecnt;
+		fprintf(out,"\n}\n#line %d \"%s\"\n",*lineno,lmnop->outname);
 	} /* End if(rp->code) */
 	
 	return;
@@ -805,11 +805,7 @@ void print_stack_union(FILE *out, struct lmno *lmnop, int *plineno, int mhflag)
 	arraysize = lmnop->nsymbol * 2;
 	types = (char**)malloc(arraysize * sizeof(char*));
 	for(i=0; i<arraysize; i++) types[i] = 0;
-	maxdtlength = 0;
-	if(lmnop->vartype)
-	{
-		maxdtlength = strlen(lmnop->vartype);
-	}
+	maxdtlength = (lmnop->vartype ? strlen(lmnop->vartype) : 0);
 	for(i=0; i<lmnop->nsymbol; i++)
 	{
 		int len;
@@ -842,14 +838,14 @@ void print_stack_union(FILE *out, struct lmno *lmnop, int *plineno, int mhflag)
 			sp->dtnum = arraysize+1;
 			continue;
 		}
-		if(sp->type!=NONTERMINAL || (sp->datatype==0 && lmnop->vartype==0))
+		if(sp->type==TERMINAL || (sp->datatype==0 && lmnop->vartype==0))
 		{
 			sp->dtnum = 0;
 			continue;
 		}
 		cp = sp->datatype;
 		if(cp==0)
-			cp = lmnop->vartype;
+			cp = sp->datatype = lmnop->vartype;
 		j = 0;
 		while(isspace(*cp))
 			cp++;
@@ -909,7 +905,7 @@ void print_stack_union(FILE *out, struct lmno *lmnop, int *plineno, int mhflag)
 	{
 		fprintf(out, "	YYMINORTYPE() : __dummy(0) { }\n");
 		lineno++;
-		fprintf(out, "	int __dummy;\n");
+		fprintf(out, "	void* __dummy;\n");
 		lineno++;
 	}
 	fprintf(out,"	%sTOKENTYPE yy0;\n",name);
@@ -922,8 +918,11 @@ void print_stack_union(FILE *out, struct lmno *lmnop, int *plineno, int mhflag)
 		lineno++;
 		free(types[i]);
 	}
-	fprintf(out,"	int yy%d;\n",lmnop->errsym->dtnum);
-	lineno++;
+	if(lmnop->errsym)
+	{
+		fprintf(out,"	int yy%d;\n",lmnop->errsym->dtnum);
+		lineno++;
+	}
 	free(stddt);
 	free(types);
 	fprintf(out,"};\n");
@@ -1548,10 +1547,13 @@ void ReportHeader(struct lmno *lmnop)
 	lineno++;
 	fprintf(out,"#define YYNRULE %d\n",lmnop->nrule);
 	lineno++;
-	fprintf(out,"#define YYERRORSYMBOL %d\n",lmnop->errsym->index);
-	lineno++;
-	fprintf(out,"#define YYERRSYMDT yy%d\n",lmnop->errsym->dtnum);
-	lineno++;
+	if(lmnop->errsym)
+	{
+		fprintf(out,"#define YYERRORSYMBOL %d\n",lmnop->errsym->index);
+		lineno++;
+		fprintf(out,"#define YYERRSYMDT yy%d\n",lmnop->errsym->dtnum);
+		lineno++;
+	}
 	if(lmnop->has_fallback)
 	{
 		fprintf(out,"#define YYFALLBACK 1\n");  lineno++;

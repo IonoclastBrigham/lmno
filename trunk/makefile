@@ -2,7 +2,7 @@
 # LMNO LALR(1) parser generator
 
 CC=/usr/bin/gcc
-CFLAGS=-std=gnu99 -O2 -Wall
+CFLAGS=-std=gnu99 -O2
 TOUCH=/usr/bin/touch
 srcdir=src/
 builddir=build/
@@ -60,7 +60,7 @@ ${builddir} :
 	mkdir -p ${builddir}
 
 debug : clean
-	make lmno CFLAGS="-std=gnu99 -Wall -g"
+	make lmno CFLAGS="-std=gnu99 -O0 -Wall -g"
 
 install : lmno
 	cp lmno "${PREFIX}/"

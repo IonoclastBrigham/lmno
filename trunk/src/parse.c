@@ -63,10 +63,14 @@ static void parseonetoken(struct pstate *psp)
 {
 	char *x;
 	x = Strsafe(psp->tokenstart);	 /* Save the token permanently */
+	if(psp->lmnop->errsym == NULL && strcmp("error", x) == 0)
+		psp->lmnop->errsym = Symbol_new("error");
+		
 #if 0
 	printf("%s:%d: Token=[%s] state=%d\n",psp->filename,psp->tokenlineno,
 		   x,psp->state);
 #endif
+
 	switch(psp->state)
 	{
 		case INITIALIZE:
