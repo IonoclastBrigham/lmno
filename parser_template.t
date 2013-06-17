@@ -529,7 +529,6 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 		}
 		else if(yyact  ==  YY_ERROR_ACTION)
 		{
-			int yymx;
 #ifndef NDEBUG
 			if(pParser-> yyTraceFILE)
 				fprintf(pParser-> yyTraceFILE,"%sSyntax Error!\n",pParser->yyTracePrompt);
@@ -556,8 +555,8 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 			 */
 			if(pParser->yyerrcnt < 0)
 				yy_syntax_error(pParser,yymajor,yyminorunion);
-			yymx = pParser->yystack[pParser->yyidx].major;
-			if(yymx == YYERRORSYMBOL || yyerrorhit)
+			int tos = pParser->yystack[pParser->yyidx].major;
+			if(tos == YYERRORSYMBOL || yyerrorhit)
 			{
 #ifndef NDEBUG
 				if(pParser-> yyTraceFILE)
@@ -569,7 +568,7 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 			}
 			else
 			{
-				while(pParser->yyidx >= 0 && yymx != YYERRORSYMBOL &&
+				while(pParser->yyidx >= 0 && tos != YYERRORSYMBOL &&
 					(yyact = yy_find_shift_action(pParser,YYERRORSYMBOL)) >=
 					YYNSTATE)
 					yy_pop_parser_stack(pParser);
@@ -579,7 +578,7 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 					yy_parse_failed(pParser);
 					yymajor = YYNOCODE;
 				}
-				else if(yymx!=YYERRORSYMBOL)
+				else if(tos!=YYERRORSYMBOL)
 				{
 					YYMINORTYPE u2;
 					u2.YYERRSYMDT = 0;

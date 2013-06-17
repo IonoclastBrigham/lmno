@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 	lem.vardest = 0;
 	lem.tablesize = 0;
 	Symbol_new("$");
-	lem.errsym = Symbol_new("error");
+	lem.errsym = NULL;//Symbol_new("error");
 	
 	/* Parse the input file */
 	Parse(&lem);
@@ -184,14 +184,14 @@ int main(int argc, char** argv)
 		if( !quiet )
 			ReportOutput(&lem);
 		
-		/* Generate the source code for the parser */
-		ReportTable(&lem, mhflag);
-		
 		/* Produce a header file for use by the scanner.  (This step is
 		 ** omitted if the "-m" option is used because makeheaders will
 		 ** generate the file for us.) */
 		if( !mhflag )
 			ReportHeader(&lem);
+		
+		/* Generate the source code for the parser */
+		ReportTable(&lem, mhflag);
 	}
 	if( statistics )
 	{

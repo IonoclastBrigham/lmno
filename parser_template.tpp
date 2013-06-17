@@ -429,7 +429,7 @@ void %nameParser::parse_failed()
 #ifndef NDEBUG
 	if(yyTraceStream)
 	{
-		*yyTraceStream << yyTracePrompt << "Fail!" << std::endl;
+		*yyTraceStream << yyTracePrompt << "(Parse failed)" << std::endl;
 	}
 #endif
 	stack.clear();
@@ -511,7 +511,7 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 	if(yyTraceStream)
 	{
 		*yyTraceStream << yyTracePrompt << "Input " << yyTokenName[yymajor]
-		<< std::endl;
+			<< endl;
 	}
 #endif
 	
@@ -537,19 +537,18 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 		}
 		else if(yyact == YY_ERROR_ACTION)
 		{
-			int yymx;
 #ifndef NDEBUG
 			if(yyTraceStream)
 			{
-				*yyTraceStream << yyTracePrompt << "Syntax Error!" << std::endl;
+				*yyTraceStream << yyTracePrompt << "(Syntax Error)" << endl;
 			}
 #endif
 #ifdef YYERRORSYMBOL
 			/* A syntax error has occurred.
 			 * The response to an error depends upon whether or not the
-			 * grammar defines an error token "ERROR".  
+			 * grammar references the error symbol "error".  
 			 *
-			 * This is what we do if the grammar does define ERROR:
+			 * This is what we do if the grammar does use error:
 			 *
 			 *  * Call the %syntax_error function.
 			 *
@@ -564,17 +563,18 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			 *	shifted successfully.
 			 *
 			 */
-			if(errCount<0){
+			if(errCount < 1)
+			{
 				syntax_error(yymajor,yyminorunion);
 			}
-			yymx = stack.top().major;
-			if(yymx==YYERRORSYMBOL || yyerrorhit)
+			int tos = stack.top().major;
+			if(tos == YYERRORSYMBOL || yyerrorhit) // hit error previously
 			{
 #ifndef NDEBUG
 				if(yyTraceStream)
 				{
-					*yyTraceStream << yyTracePrompt << "Discard input token "
-						<< yyTokenName[yymajor] << std::endl;
+					*yyTraceStream << yyTracePrompt << "Discard input token: "
+						<< yyTokenName[yymajor] << endl;
 				}
 #endif
 				destructor(yymajor,&yyminorunion);
@@ -582,28 +582,32 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			}
 			else
 			{
-				while(stack.size() >= 0 &&
-					  yymx != YYERRORSYMBOL &&
-					  (yyact = find_shift_action(YYERRORSYMBOL)) >= YYNSTATE)
+				if(tos != YYERRORSYMBOL)
 				{
-					stack.lop();
+					yyact = find_shift_action(YYERRORSYMBOL);
+					while(stack.size() && yyact >= YYNSTATE) // can't shift
+					{
+						yyact = find_shift_action(YYERRORSYMBOL);
+						cerr << "Popping " << yyTokenName[stack.pop().major]
+							 << endl;
+					}
 				}
 				if(stack.empty() || yymajor==0)
 				{
-					destructor(yymajor,&yyminorunion);
+					destructor(yymajor, &yyminorunion);
 					parse_failed();
 					yymajor = YYNOCODE;
 				}
-				else if(yymx!=YYERRORSYMBOL)
+				else if(tos != YYERRORSYMBOL)
 				{
 					YYMINORTYPE u2;
 					u2.YYERRSYMDT = 0;
-					shift(yyact,YYERRORSYMBOL,&u2);
+					shift(yyact, YYERRORSYMBOL, &u2);
 				}
 			}
 			errCount = 3;
 			yyerrorhit = true;
-#else  /* YYERRORSYMBOL is not defined */
+#else  // YYERRORSYMBOL is not defined
 			/* This is what we do if the grammar does not define ERROR:
 			 *
 			 *  * Report an error message, and throw away the input token.
@@ -613,7 +617,7 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			 * As before, subsequent error messages are suppressed until
 			 * three input tokens have been successfully shifted.
 			 */
-			if(errCount<=0)
+			if(errCount < 1)
 			{
 				syntax_error(yymajor,yyminorunion);
 			}
