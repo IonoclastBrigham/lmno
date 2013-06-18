@@ -547,19 +547,19 @@ void emit_destructor_code(FILE *out, struct symbol *sp,
 		cp = lmnop->tokendest;
 		if(cp==0)
 			return;
-		fprintf(out,"#line %d \"%s\"\n/*Token d'tor*/\n{",lmnop->tokendestln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n{",lmnop->tokendestln,lmnop->filename);
 	}
 	else if(sp->destructor)
 	{
 		cp = sp->destructor;
-		fprintf(out,"#line %d \"%s\"\n/Explicit *d'tor*/\n{",sp->destructorln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n{",sp->destructorln,lmnop->filename);
 	}
 	else if(lmnop->vardest)
 	{
 		cp = lmnop->vardest;
 		if(cp==0)
 			return;
-		fprintf(out,"#line %d \"%s\"\n/*Default d'tor*/\n{",lmnop->vardestln,lmnop->filename);
+		fprintf(out,"#line %d \"%s\"\n{",lmnop->vardestln,lmnop->filename);
 	}
 	else
 	{
