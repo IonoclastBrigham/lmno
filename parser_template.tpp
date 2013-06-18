@@ -567,6 +567,9 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			{
 				syntax_error(yymajor,yyminorunion);
 			}
+			errCount = 3;
+			yyerrorhit = true;
+
 			int tos = stack.top().major;
 			if(tos == YYERRORSYMBOL || yyerrorhit) // hit error previously
 			{
@@ -580,19 +583,17 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 				destructor(yymajor,&yyminorunion);
 				yymajor = YYNOCODE;
 			}
-			else
+			else // first error
 			{
-				if(tos != YYERRORSYMBOL)
+				yyact = find_shift_action(YYERRORSYMBOL);
+				while(stack.size() && yyact >= YYNSTATE) // can't shift
 				{
+					cerr << "Popping " << yyTokenName[stack.pop().major]
+						 << endl;
 					yyact = find_shift_action(YYERRORSYMBOL);
-					while(stack.size() && yyact >= YYNSTATE) // can't shift
-					{
-						yyact = find_shift_action(YYERRORSYMBOL);
-						cerr << "Popping " << yyTokenName[stack.pop().major]
-							 << endl;
-					}
 				}
-				if(stack.empty() || yymajor==0)
+
+				if(stack.empty() || yymajor == 0)
 				{
 					destructor(yymajor, &yyminorunion);
 					parse_failed();
@@ -605,8 +606,6 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 					shift(yyact, YYERRORSYMBOL, &u2);
 				}
 			}
-			errCount = 3;
-			yyerrorhit = true;
 #else  // YYERRORSYMBOL is not defined
 			/* This is what we do if the grammar does not define ERROR:
 			 *
@@ -623,7 +622,8 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			}
 			errCount = 3;
 			destructor(yymajor,&yyminorunion);
-			if(yyendofinput){
+			if(yyendofinput)
+			{
 				parse_failed();
 			}
 			yymajor = YYNOCODE;
@@ -634,7 +634,5 @@ void %nameParser::Parse(int yymajor, %nameTOKENTYPE yyminor %nameARG_PDECL)
 			accept();
 			yymajor = YYNOCODE;
 		}
-	}
-	while(yymajor!=YYNOCODE && stack.size());
-	return;
+	} while(yymajor != YYNOCODE && stack.size());
 }
