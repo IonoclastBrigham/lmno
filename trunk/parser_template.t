@@ -531,8 +531,10 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 		{
 #ifndef NDEBUG
 			if(pParser-> yyTraceFILE)
+			{
 				fprintf(pParser-> yyTraceFILE,"%sSyntax Error!\n",pParser->yyTracePrompt);
-#endif // NDEBUG
+			}
+#endif
 #ifdef YYERRORSYMBOL
 			/* A syntax error has occurred.
 			 * The response to an error depends upon whether or not the
@@ -554,41 +556,48 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 			 *
 			 */
 			if(pParser->yyerrcnt < 0)
+			{
 				yy_syntax_error(pParser,yymajor,yyminorunion);
+			}
+			pParser->yyerrcnt = 3;
+			yyerrorhit = 1;
+
 			int tos = pParser->yystack[pParser->yyidx].major;
 			if(tos == YYERRORSYMBOL || yyerrorhit)
 			{
 #ifndef NDEBUG
 				if(pParser-> yyTraceFILE)
+				{
 					fprintf(pParser-> yyTraceFILE, "%sDiscard input token %s\n",
 						pParser->yyTracePrompt, yyTokenName[yymajor]);
+				}
 #endif // NDEBUG
 				yy_destructor(yymajor,&yyminorunion);
 				yymajor = YYNOCODE;
 			}
 			else
 			{
-				while(pParser->yyidx >= 0 && tos != YYERRORSYMBOL &&
-					(yyact = yy_find_shift_action(pParser,YYERRORSYMBOL)) >=
-					YYNSTATE)
+				yyact = yy_find_shift_action(pParser, YYERRORSYMBOL);
+				while(pParser->yyidx >= 0 && (yyact >= YYNSTATE)
+				{
 					yy_pop_parser_stack(pParser);
-				if(pParser->yyidx  <  0 || yymajor == 0)
+					yyact = yy_find_shift_action(pParser, YYERRORSYMBOL);
+				}
+
+				if(pParser->yyidx < 0 || yymajor == 0)
 				{
 					yy_destructor(yymajor,&yyminorunion);
 					yy_parse_failed(pParser);
 					yymajor = YYNOCODE;
 				}
-				else if(tos!=YYERRORSYMBOL)
+				else if(tos != YYERRORSYMBOL)
 				{
 					YYMINORTYPE u2;
 					u2.YYERRSYMDT = 0;
 					yy_shift(pParser,yyact,YYERRORSYMBOL,&u2);
 				}
 			}
-
-			pParser->yyerrcnt = 3;
-			yyerrorhit = 1;
-			#else  /* YYERRORSYMBOL is not defined  */
+#else // YYERRORSYMBOL is not defined
 			/* This is what we do if the grammar does not define ERROR:
 			 *
 			 *  * Report an error message, and throw away the input token.
@@ -599,11 +608,15 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 			 * three input tokens have been successfully shifted.
 			 */
 			if(pParser->yyerrcnt < =0)
+			{
 				yy_syntax_error(pParser,yymajor,yyminorunion);
+			}
 			pParser->yyerrcnt = 3;
 			yy_destructor(yymajor,&yyminorunion);
 			if(yyendofinput)
+			{
 				yy_parse_failed(pParser);
+			}
 			yymajor = YYNOCODE;
 #endif // YYERRORSYMBOL
 		}
@@ -612,5 +625,5 @@ void %nameParse(%nameParser* pParser, int yymajor, %nameTOKENTYPE yyminor %nameA
 			yy_accept(pParser);
 			yymajor = YYNOCODE;
 		}
-	} while( yymajor!=YYNOCODE && pParser->yyidx>=0 );
+	} while(yymajor != YYNOCODE && pParser->yyidx >= 0);
 }
