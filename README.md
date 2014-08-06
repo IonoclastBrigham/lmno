@@ -37,4 +37,4 @@ As of this writing, the following command-line options are supported:
 Writing Grammars
 ----------------
 
-One writes grammar files in a language that is functionally very similar to standard Backus-Nauer Form. You may include inline code to be executed for each reduction, e.g. for building a parse tree, or directly executing interpreted code. Further details can be found in the LMNO [wiki].
+One writes grammar files in a language that is functionally very similar to standard Backus-Nauer Form. You may include inline code to be executed for each reduction, e.g. for building a parse tree, or directly executing interpreted code. Further details can be found in the LMNO [wiki](https://github.com/IonoclastBrigham/lmno/wiki).
